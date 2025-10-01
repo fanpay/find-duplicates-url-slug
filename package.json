@@ -5,10 +5,12 @@
   "author": "Fabian Payan",
   "license": "MIT",
   "scripts": {
-    "dev": "vite",
-    "dev:functions": "netlify dev",
-    "dev:functions:live": "netlify dev --live",
-    "build": "tsc -b && vite build",
+    "dev": "vite --host localhost --mode development",
+    "dev:secure": "vite --host localhost --https --mode development",
+    "dev:netlify": "netlify dev",
+    "dev:netlify:live": "netlify dev --live",
+    "build": "tsc -b && vite build --mode production",
+    "build:dev": "tsc -b && vite build --mode development",
     "preview": "vite preview",
     "format": "biome check .",
     "format:fix": "biome check --write ."

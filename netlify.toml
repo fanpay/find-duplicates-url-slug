@@ -10,11 +10,12 @@
   to = "/index.html"
   status = 200
 
+# Headers for production (Netlify deployment)
 [[headers]]
   for = "/*"
   [headers.values]
-    # Content Security Policy: restrict everything to self, allow required Kontent.ai endpoints, and allow embedding only inside Kontent.ai UI
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://deliver.kontent.ai https://manage.kontent.ai; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors https://app.kontent.ai; base-uri 'self'; form-action 'self';"
+    # Content Security Policy: allow required external services for analytics and error reporting
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' https://deliver.kontent.ai https://manage.kontent.ai https://cdn.amplitude.com https://*.ingest.sentry.io; script-src 'self' https://cdn.amplitude.com; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors https://app.kontent.ai; base-uri 'self'; form-action 'self';"
     # Legacy clickjacking protection (ALLOW-FROM has limited support; CSP frame-ancestors is authoritative)
     X-Frame-Options = "ALLOW-FROM https://app.kontent.ai"
     # Prevent MIME sniffing
@@ -23,11 +24,10 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Opt into newer browser protections
     X-DNS-Prefetch-Control = "off"
-    # Limit powerful APIs (customize as needed)
+    # Limit powerful APIs (fix deprecated browsing-topics)
     Permissions-Policy = "geolocation=(), microphone=(), camera=(), fullscreen=(self)"
     # Cross origin policies (relaxed enough for iframe embedding & fetch)
     Cross-Origin-Opener-Policy = "same-origin"
-    Cross-Origin-Embedder-Policy = "require-corp"
     Cross-Origin-Resource-Policy = "same-origin"
     # Security related headers
     Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
