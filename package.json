@@ -1,0 +1,27 @@
+{
+  "name": "kontent-find-duplicates-url-slug",
+  "version": "1.0.0",
+  "description": "Custom app to find duplicate url-slugs in Kontent.ai pages.",
+  "author": "Fabian Payan",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "dev:functions": "netlify dev",
+    "dev:functions:live": "netlify dev --live",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "format": "biome check .",
+    "format:fix": "biome check --write ."
+  },
+  "dependencies": {
+    "@kontent-ai/custom-app-sdk": "^1.0.0",
+    "@kontent-ai/management-sdk": "^7.7.0",
+    "@kontent-ai/stylekit": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2",
+    "vite": "^6.3.4",
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.14.0"
+  }
+}
