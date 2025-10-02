@@ -104,6 +104,38 @@ export async function findDuplicateSlugs(languages?: string[]): Promise<Duplicat
 }
 
 /**
+ * Check if an item is properly translated and has content in the requested language
+ */
+function isItemProperlyTranslated(item: PageItem, requestedLanguage: string): boolean {
+  // Check if the item's language matches the requested language
+  if (item.system.language !== requestedLanguage) {
+    console.warn(`⚠️ Language mismatch: requested ${requestedLanguage}, got ${item.system.language} for ${item.system.codename}`);
+    return false;
+  }
+
+  // Check if it has a valid slug value
+  const hasSlug = Boolean(item.elements.url_slug?.value || item.elements.slug?.value);
+  if (!hasSlug) {
+    return false;
+  }
+
+  // Check if the item has a meaningful name (not just codename)
+  const hasValidName = item.system.name && item.system.name.trim().length > 0;
+  if (!hasValidName) {
+    console.warn(`⚠️ Item ${item.system.codename} has no valid name in ${requestedLanguage}`);
+    return false;
+  }
+
+  // Additional check: verify the slug is not empty or just whitespace
+  const slugValue = item.elements.url_slug?.value || item.elements.slug?.value;
+  if (!slugValue || slugValue.trim().length === 0) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Fetch all page items with slugs across all languages
  */
 async function fetchAllPageItemsWithSlugs(languages?: string[]): Promise<PageItem[]> {
@@ -128,12 +160,21 @@ async function fetchAllPageItemsWithSlugs(languages?: string[]): Promise<PageIte
       .elementsParameter(['url_slug', 'slug'])
       .toAllPromise();
 
+    // Filter items to only include properly translated content
     const itemsWithSlugs = response.data.items.filter(item => 
-      item.elements.url_slug?.value || item.elements.slug?.value
+      isItemProperlyTranslated(item, lang)
     );
 
+    // Additional logging for debugging
+    const totalItems = response.data.items.length;
+    const filteredItems = itemsWithSlugs.length;
+    console.log(`Fetched ${totalItems} total items in ${lang}, ${filteredItems} properly translated with slugs`);
+    
+    if (totalItems > filteredItems) {
+      console.log(`🛡️ Filtered out ${totalItems - filteredItems} items without proper translation in ${lang}`);
+    }
+
     allItems.push(...itemsWithSlugs);
-    console.log(`Fetched ${itemsWithSlugs.length} page items with slugs in ${lang}`);
   }
 
   console.log(`Total page items with slugs: ${allItems.length}`);

@@ -1,9 +1,10 @@
 /**
- * Kontent.ai API service using the official Delivery SDK
+/**
+ * API service using the official Delivery SDK
  */
 
 import { createDeliveryClient, type IContentItem, type Elements } from "@kontent-ai/delivery-sdk";
-import { appConfig, isConfigValid } from "../config";
+import { appConfig, isConfigValid, getConfiguredLanguages } from "../config";
 import type { ApiResult, ContentItem } from "../types";
 
 // Type for page content items with slug fields
@@ -12,8 +13,32 @@ type PageItem = IContentItem<{
   slug?: Elements.UrlSlugElement;
 }>;
 
-// Languages to search explicitly
-const LANGUAGE_CODES = ["de", "en", "zh"];
+/**
+ * Check if an item is properly translated and matches the target slug
+ */
+function isValidTranslatedItem(item: PageItem, targetSlug: string, requestedLanguage: string): boolean {
+  // Check if the item's language matches the requested language
+  if (item.system.language !== requestedLanguage) {
+    console.warn(`⚠️ Language mismatch for ${item.system.codename}: requested ${requestedLanguage}, got ${item.system.language}`);
+    return false;
+  }
+
+  // Check if it has a valid name (indicates proper translation)
+  const hasValidName = item.system.name && item.system.name.trim().length > 0;
+  if (!hasValidName) {
+    console.warn(`⚠️ Item ${item.system.codename} has no valid name in ${requestedLanguage}`);
+    return false;
+  }
+
+  // Verify the slug matches what we're looking for
+  const slugValue = item.elements.url_slug?.value || item.elements.slug?.value;
+  if (slugValue !== targetSlug) {
+    console.warn(`⚠️ Slug mismatch for ${item.system.codename}: expected "${targetSlug}", got "${slugValue}"`);
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * Create delivery client instance
@@ -37,8 +62,10 @@ export async function searchWithDeliveryApi(targetSlug: string): Promise<ApiResu
     console.log(`\n--- Delivery SDK Search for "${targetSlug}" ---`);
     const client = createClient();
     const allItems: ContentItem[] = [];
+    const languagesToSearch = getConfiguredLanguages();
+    console.log(`🌍 Searching in languages: ${languagesToSearch.join(", ")}`);
 
-    for (const lang of LANGUAGE_CODES) {
+    for (const lang of languagesToSearch) {
       console.log(`Searching in language: ${lang}`);
       
       // Try searching with url_slug field
@@ -50,9 +77,11 @@ export async function searchWithDeliveryApi(targetSlug: string): Promise<ApiResu
           .languageParameter(lang)
           .toAllPromise(); // Automatically handles pagination!
 
-        const items = response.data.items.map(item => formatSDKItem(item, lang));
+        // Filter items to only include properly translated content
+        const validItems = response.data.items.filter(item => isValidTranslatedItem(item, targetSlug, lang));
+        const items = validItems.map(item => formatSDKItem(item, lang));
         allItems.push(...items);
-        console.log(`Found ${items.length} items with url_slug in ${lang}`);
+        console.log(`Found ${response.data.items.length} total items, ${validItems.length} valid translations with url_slug in ${lang}`);
       } catch (error) {
         console.log(`No items found with url_slug in ${lang}:`, error);
       }
@@ -66,9 +95,11 @@ export async function searchWithDeliveryApi(targetSlug: string): Promise<ApiResu
           .languageParameter(lang)
           .toAllPromise(); // Automatically handles pagination!
 
-        const items = response.data.items.map(item => formatSDKItem(item, lang));
+        // Filter items to only include properly translated content
+        const validItems = response.data.items.filter(item => isValidTranslatedItem(item, targetSlug, lang));
+        const items = validItems.map(item => formatSDKItem(item, lang));
         allItems.push(...items);
-        console.log(`Found ${items.length} items with slug in ${lang}`);
+        console.log(`Found ${response.data.items.length} total items, ${validItems.length} valid translations with slug in ${lang}`);
       } catch (error) {
         console.log(`No items found with slug in ${lang}:`, error);
       }
@@ -105,7 +136,8 @@ export async function searchAllItemsDeliveryApi(targetSlug: string): Promise<Api
     const client = createClient();
     const allItems: ContentItem[] = [];
 
-    for (const lang of LANGUAGE_CODES) {
+    const languagesToSearch = getConfiguredLanguages();
+    for (const lang of languagesToSearch) {
       console.log(`Fetching all page items in language: ${lang}`);
       
       const response = await client
@@ -115,14 +147,21 @@ export async function searchAllItemsDeliveryApi(targetSlug: string): Promise<Api
         .elementsParameter(['url_slug', 'slug'])
         .toAllPromise(); // SDK handles pagination automatically!
 
-      const items = response.data.items
-        .filter(item => 
-          item.elements.url_slug?.value || item.elements.slug?.value
-        )
-        .map(item => formatSDKItem(item, lang));
-
+      // Filter to only properly translated items with slugs  
+      const validItems = response.data.items.filter(item => {
+        // Check if item has slug
+        const hasSlug = item.elements.url_slug?.value || item.elements.slug?.value;
+        if (!hasSlug) return false;
+        
+        // Check if item is properly translated
+        return item.system.language === lang && 
+               item.system.name && 
+               item.system.name.trim().length > 0;
+      });
+      
+      const items = validItems.map(item => formatSDKItem(item, lang));
       allItems.push(...items);
-      console.log(`Fetched ${items.length} page items with slugs in ${lang}`);
+      console.log(`Fetched ${response.data.items.length} total items, ${validItems.length} properly translated with slugs in ${lang}`);
     }
 
     // Analyze slug data
