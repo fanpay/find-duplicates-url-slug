@@ -17,23 +17,32 @@ export const appConfig: AppConfig = {
  * Initialize configuration from environment variables and Kontent.ai context
  */
 export async function initializeConfig(): Promise<void> {
-  // Get environment variables
+  // Get environment variables first (fallback values)
   appConfig.projectId = getEnvVar("VITE_KONTENT_PROJECT_ID") || "";
   appConfig.environmentId = getEnvVar("VITE_KONTENT_ENVIRONMENT_ID") || "";
-  //appConfig.deliveryApiKey = getEnvVar("VITE_KONTENT_DELIVERY_API_KEY") || "";
-  //appConfig.managementApiKey = getEnvVar("VITE_KONTENT_MANAGEMENT_API_KEY") || "";
 
-  // Try to get context from Kontent.ai Custom App SDK
+  console.log("🔧 Environment variables loaded:", {
+    hasProjectId: Boolean(appConfig.projectId),
+    hasEnvironmentId: Boolean(appConfig.environmentId)
+  });
+
+  // Try to get context from Kontent.ai Custom App SDK (preferred source)
   try {
+    console.log("🔍 Attempting to get Custom App context...");
     const ctx = await getCustomAppContext();
-    console.log("Custom App Context:", ctx);
+    console.log("📋 Custom App Context response:", ctx);
 
     if (!ctx.isError && ctx.context?.environmentId) {
+      // Use Environment ID from Kontent.ai context (more reliable)
       appConfig.projectId = ctx.context.environmentId;
-      console.log("Using project ID from Kontent.ai context:", appConfig.projectId);
+      appConfig.environmentId = ctx.context.environmentId;
+      console.log("✅ Using Environment ID from Kontent.ai context:", appConfig.projectId);
+    } else {
+      console.log("⚠️ Custom App context not available or incomplete");
     }
   } catch (error) {
-    console.log("Could not get Custom App context:", error);
+    console.log("❌ Could not get Custom App context:", error);
+    console.log("📝 This is normal when testing outside Kontent.ai iframe");
   }
 
   logConfiguration();
@@ -47,8 +56,6 @@ declare global {
   interface ImportMetaEnv {
     readonly VITE_KONTENT_PROJECT_ID?: string;
     readonly VITE_KONTENT_ENVIRONMENT_ID?: string;
-    //readonly VITE_KONTENT_API_KEY?: string;
-    //readonly VITE_KONTENT_MANAGEMENT_API_KEY?: string;
     // Allow other arbitrary variables without forcing any
     readonly [key: string]: string | undefined;
   }
@@ -58,18 +65,17 @@ declare global {
 }
 
 function getEnvVar(key: string): string {
-  return import.meta.env?.[key] || process.env[key] || "";
+  // In Vite, only use import.meta.env (not process.env in the browser)
+  return import.meta.env?.[key] || "";
 }
 
 /**
  * Log current configuration (without exposing sensitive data)
  */
 function logConfiguration(): void {
-  console.log("Final configuration:", {
-    projectId: appConfig.projectId || "NOT SET",
-    environmentId: appConfig.environmentId || "NOT SET",
-    //deliveryApiKey: appConfig.deliveryApiKey ? "***PRESENT***" : "NOT SET",
-    //managementApiKey: appConfig.managementApiKey ? "***PRESENT***" : "NOT SET"
+  console.log("📋 Final configuration:", {
+    projectId: appConfig.projectId || "❌ NOT SET",
+    environmentId: appConfig.environmentId || "❌ NOT SET",
   });
 }
 
@@ -86,13 +92,9 @@ export function isConfigValid(): boolean {
 export function getConfigStatus(): {
   projectId: string;
   environmentId: string;
-  //deliveryApiKey: boolean;
-  //managementApiKey: boolean;
 } {
   return {
     projectId: appConfig.projectId,
     environmentId: appConfig.environmentId,
-    //deliveryApiKey: Boolean(appConfig.deliveryApiKey),
-    //managementApiKey: Boolean(appConfig.managementApiKey)
   };
 }

@@ -6,7 +6,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite --host localhost --mode development",
-    "dev:secure": "vite --host localhost --https --mode development",
+    "dev:secure": "vite --host localhost --mode development",
+    "dev:tunnel": "echo '🚀 Starting development server...' && npm run dev:secure & sleep 3 && npx ngrok http https://localhost:5176 --log stdout",
     "dev:netlify": "netlify dev",
     "dev:netlify:live": "netlify dev --live",
     "build": "tsc -b && vite build --mode production",
