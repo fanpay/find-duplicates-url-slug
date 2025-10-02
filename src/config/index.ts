@@ -14,6 +14,31 @@ export const appConfig: AppConfig = {
   defaultLanguage: "en"
 };
 
+// Flag to track if user has manually configured languages
+let userHasConfiguredLanguages = false;
+
+/**
+ * Mark that user has manually configured languages (should not be overwritten)
+ */
+export function setUserConfiguredLanguages(): void {
+  userHasConfiguredLanguages = true;
+}
+
+/**
+ * Check if user has manually configured languages
+ */
+export function hasUserConfiguredLanguages(): boolean {
+  return userHasConfiguredLanguages;
+}
+
+/**
+ * Reset user configuration flag (allows env vars to take effect again)
+ */
+export function resetUserConfiguredLanguages(): void {
+  userHasConfiguredLanguages = false;
+  console.log("🔄 Reset user language configuration flag");
+}
+
 /**
  * Initialize configuration from environment variables and Kontent.ai context
  */
@@ -21,15 +46,17 @@ export async function initializeConfig(): Promise<void> {
   // Get environment variables as fallback (mainly for standalone testing)
   appConfig.environmentId = getEnvVar("VITE_KONTENT_ENVIRONMENT_ID") || "";
   
-  // Configure languages from environment variables
-  const envLanguages = getEnvVar("VITE_KONTENT_LANGUAGES");
-  if (envLanguages) {
-    appConfig.languages = envLanguages.split(",").map(lang => lang.trim());
-  }
-  
-  const envDefaultLanguage = getEnvVar("VITE_KONTENT_DEFAULT_LANGUAGE");
-  if (envDefaultLanguage) {
-    appConfig.defaultLanguage = envDefaultLanguage.trim();
+  // Configure languages from environment variables ONLY if user hasn't manually configured them
+  if (!userHasConfiguredLanguages) {
+    const envLanguages = getEnvVar("VITE_KONTENT_LANGUAGES");
+    if (envLanguages) {
+      appConfig.languages = envLanguages.split(",").map(lang => lang.trim());
+    }
+    
+    const envDefaultLanguage = getEnvVar("VITE_KONTENT_DEFAULT_LANGUAGE");
+    if (envDefaultLanguage) {
+      appConfig.defaultLanguage = envDefaultLanguage.trim();
+    }
   }
 
   console.log("🔧 Environment variables loaded:", {
@@ -61,11 +88,14 @@ export async function initializeConfig(): Promise<void> {
  * Get the configured languages or fallback to default
  */
 export function getConfiguredLanguages(): string[] {
-  if (appConfig.languages && appConfig.languages.length > 0) {
-    return appConfig.languages;
-  }
-  // Fallback to default language if no languages configured
-  return [appConfig.defaultLanguage || "en"];
+  const languages = appConfig.languages && appConfig.languages.length > 0 
+    ? appConfig.languages 
+    : [appConfig.defaultLanguage || "en"];
+  
+  // Only log when languages are actually being retrieved for search operations
+  console.log(`🌐 Using languages: [${languages.join(', ')}] ${userHasConfiguredLanguages ? '(user configured)' : '(default/env)'}`);
+  
+  return languages;
 }
 
 /**

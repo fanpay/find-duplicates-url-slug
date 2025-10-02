@@ -2,7 +2,7 @@
  * UI components and rendering functions
  */
 
-import { getConfigStatus, getConfiguredLanguages, appConfig } from "../config";
+import { getConfigStatus, getConfiguredLanguages, appConfig, hasUserConfiguredLanguages } from "../config";
 import type { ApiResult, ContentItem, DuplicateResult } from "../types";
 import type { DuplicateGroup, DuplicateSummaryItem } from "../utils";
 
@@ -99,8 +99,11 @@ export function renderLanguageConfiguration(): string {
       </div>
       
       <div style="margin-top: 20px; padding: 10px; background: #d1ecf1; border-radius: 4px; font-size: 14px;">
-        <strong>Note:</strong> Language changes apply immediately for the current session. 
-        For persistent configuration, set VITE_KONTENT_LANGUAGES in your .env file.
+        <strong>💡 Session Configuration:</strong><br>
+        • Changes apply immediately and persist during this session<br>
+        • Will be used for all searches until page reload<br>
+        • For permanent config, set VITE_KONTENT_LANGUAGES in .env file<br>
+        • ${hasUserConfiguredLanguages() ? '✅ Currently using your custom settings' : '📋 Currently using environment/default settings'}
       </div>
     </div>
   `;

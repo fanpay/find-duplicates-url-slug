@@ -13,7 +13,7 @@ import {
   renderLanguageConfiguration,
 } from "./components/ui";
 // Import modules
-import { initializeConfig, appConfig } from "./config";
+import { initializeConfig, appConfig, setUserConfiguredLanguages, hasUserConfiguredLanguages } from "./config";
 import { findDuplicateSlugs, searchSpecificSlug } from "./services/search";
 
 // =====================================================================
@@ -115,7 +115,10 @@ async function handleConfigClick(): Promise<void> {
     searchSection.style.display = "none";
 
     resultDiv.innerHTML = "Loading configuration...";
-    await initializeConfig();
+    // Only initialize config on first load, preserve user changes
+    if (!hasUserConfiguredLanguages()) {
+      await initializeConfig();
+    }
     resultDiv.innerHTML = renderConfiguration();
     
     // Setup event listener for the integrated configure languages button
@@ -137,7 +140,6 @@ async function handleSlugSearchClick(): Promise<void> {
   }
   try {
     resultDiv.innerHTML = `Searching for slug: <code>${value}</code> ...`;
-    await initializeConfig();
     const result = await searchSpecificSlug(value);
     resultDiv.innerHTML = renderSearchResults(result, value);
   } catch (error) {
@@ -155,7 +157,6 @@ async function handleFindDuplicatesClick(): Promise<void> {
     searchSection.style.display = "none";
 
     resultDiv.innerHTML = "Searching for duplicate slugs...";
-    await initializeConfig();
 
     const result = await findDuplicateSlugs();
     resultDiv.innerHTML = renderDuplicateResults(result);
@@ -203,6 +204,12 @@ function setupLanguageConfigListeners(): void {
     const languagesValue = languagesInput?.value.trim();
     const defaultLangValue = defaultLangInput?.value.trim();
 
+    console.log("🔧 User updating language configuration:", {
+      languagesValue,
+      defaultLangValue,
+      currentAppConfig: { ...appConfig }
+    });
+
     // Update in-memory configuration
     if (languagesValue) {
       appConfig.languages = languagesValue.split(",").map(lang => lang.trim()).filter(lang => lang);
@@ -213,6 +220,13 @@ function setupLanguageConfigListeners(): void {
     if (defaultLangValue) {
       appConfig.defaultLanguage = defaultLangValue;
     }
+
+    // Mark that user has configured languages manually
+    setUserConfiguredLanguages();
+    
+    console.log("✅ Language configuration updated:", {
+      newAppConfig: { ...appConfig }
+    });
 
     // Show success message and return to main config after a delay
     const successMsg = document.createElement("div");
