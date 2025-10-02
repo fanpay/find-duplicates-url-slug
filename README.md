@@ -25,6 +25,12 @@ Configure your Kontent.ai credentials:
 ```env
 VITE_KONTENT_PROJECT_ID=your-environment-id
 VITE_KONTENT_ENVIRONMENT_ID=your-environment-id
+
+# Optional: Configure languages to search (comma-separated)
+VITE_KONTENT_LANGUAGES=de,en,zh
+
+# Optional: Set default language (used when no languages configured)
+VITE_KONTENT_DEFAULT_LANGUAGE=en
 ```
 
 ### 2. Development
@@ -92,7 +98,39 @@ Kontent.ai → Environment settings → General → Environment ID
 ### Option 3: Automatic (Recommended)
 When integrated as Custom App, the SDK automatically provides the Environment ID.
 
-## 🏗️ Architecture
+## � Language Configuration
+
+### Default Behavior
+If no languages are configured, the app uses the **default language** (`en` by default).
+
+### Configuring Multiple Languages
+Set specific languages to search across:
+
+```env
+# Search across German, English, and Chinese
+VITE_KONTENT_LANGUAGES=de,en,zh
+
+# Change default language
+VITE_KONTENT_DEFAULT_LANGUAGE=es
+```
+
+### Dynamic Language Usage
+You can also pass languages programmatically:
+
+```typescript
+// Search specific languages
+await findDuplicateSlugs(['de', 'en']);
+
+// Use configured languages (or default)
+await findDuplicateSlugs();
+```
+
+### Language Priority
+1. **Function parameter** (if provided)
+2. **VITE_KONTENT_LANGUAGES** environment variable
+3. **VITE_KONTENT_DEFAULT_LANGUAGE** (default: `en`)
+
+## �🏗️ Architecture
 
 ```
 src/

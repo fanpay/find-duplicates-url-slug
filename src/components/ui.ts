@@ -2,7 +2,7 @@
  * UI components and rendering functions
  */
 
-import { getConfigStatus } from "../config";
+import { getConfigStatus, getConfiguredLanguages, appConfig } from "../config";
 import type { ApiResult, ContentItem, DuplicateResult } from "../types";
 import type { DuplicateGroup, DuplicateSummaryItem } from "../utils";
 
@@ -18,6 +18,7 @@ export function createMainUI(): string {
         <button id="config-btn" class="button button-primary">Show Config</button>
         <button id="search-btn" class="button button-warning">Search Slug</button>
         <button id="find-btn" class="button button-success">Find All Duplicates</button>
+        <button id="languages-btn" class="button button-info">Configure Languages</button>
       </div>
       
       <div id="search-section" class="search-section" style="display: none;">
@@ -29,6 +30,78 @@ export function createMainUI(): string {
       
       <div id="result" class="result-container">
         Click "Show Config" to verify settings, "Search Slug" to find specific slugs, or "Find All Duplicates" to scan the entire project for duplicate slugs.
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Render language configuration interface
+ */
+export function renderLanguageConfiguration(): string {
+  const currentLanguages = getConfiguredLanguages();
+  const defaultLang = appConfig.defaultLanguage || 'en';
+  
+  return `
+    <div class="config-section">
+      <h2 style="color: #495057; margin-top: 0;">Language Configuration</h2>
+      
+      <div style="margin-bottom: 20px;">
+        <strong>Current Languages:</strong>
+        <div style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 5px;">
+          ${currentLanguages.join(', ')}
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+          ${appConfig.languages?.length ? 
+            'Configured via VITE_KONTENT_LANGUAGES' : 
+            `Using default language: ${defaultLang}`}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label for="languages-input" style="display: block; margin-bottom: 5px; font-weight: bold;">
+          Languages (comma-separated):
+        </label>
+        <input 
+          id="languages-input" 
+          type="text" 
+          placeholder="de,en,zh" 
+          value="${appConfig.languages?.join(',') || ''}"
+          style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+        />
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+          Enter language codes separated by commas (e.g., "de,en,zh")
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <label for="default-lang-input" style="display: block; margin-bottom: 5px; font-weight: bold;">
+          Default Language:
+        </label>
+        <input 
+          id="default-lang-input" 
+          type="text" 
+          placeholder="en" 
+          value="${defaultLang}"
+          style="width: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"
+        />
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+          Used when no specific languages are configured
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <button id="apply-languages-btn" class="button button-success" style="margin-right: 10px;">
+          Apply Languages
+        </button>
+        <button id="reset-languages-btn" class="button button-secondary">
+          Reset to Default
+        </button>
+      </div>
+      
+      <div style="margin-top: 20px; padding: 10px; background: #d1ecf1; border-radius: 4px; font-size: 14px;">
+        <strong>Note:</strong> Language changes apply immediately for the current session. 
+        For persistent configuration, set VITE_KONTENT_LANGUAGES in your .env file.
       </div>
     </div>
   `;
@@ -55,6 +128,18 @@ export function renderConfiguration(): string {
         <strong>Environment ID:</strong>
         <div style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 5px;">
           ${config.environmentId || '<span style="color: red;">✗ NOT SET</span>'}
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <strong>Languages to Search:</strong>
+        <div style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 5px;">
+          ${getConfiguredLanguages().join(', ') || '<span style="color: orange;">Using default language</span>'}
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+          ${appConfig.languages?.length ? 
+            `Configured via VITE_KONTENT_LANGUAGES` : 
+            `Using default language: ${appConfig.defaultLanguage}`}
         </div>
       </div>
       

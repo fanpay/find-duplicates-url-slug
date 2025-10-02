@@ -77,6 +77,14 @@ button:hover {
   background-color: #38a169;
   color: white;
 }
+.button-info {
+  background-color: #17a2b8;
+  color: white;
+}
+.button-secondary {
+  background-color: #6c757d;
+  color: white;
+}
 .button-search {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;

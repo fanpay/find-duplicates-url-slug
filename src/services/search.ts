@@ -3,7 +3,7 @@
  */
 
 import { createDeliveryClient, type IContentItem, type Elements } from "@kontent-ai/delivery-sdk";
-import { appConfig, isConfigValid } from "../config";
+import { appConfig, isConfigValid, getConfiguredLanguages } from "../config";
 import type { ApiResult, DuplicateResult } from "../types";
 import { searchAllItemsDeliveryApi, searchWithDeliveryApi, searchWithManagementApi } from "./api";
 
@@ -12,9 +12,6 @@ type PageItem = IContentItem<{
   url_slug?: Elements.UrlSlugElement;
   slug?: Elements.UrlSlugElement;
 }>;
-
-// Languages to search explicitly  
-const LANGUAGE_CODES = ["de", "en", "zh"];
 
 /**
  * Search for items with specific slug using multiple approaches
@@ -72,8 +69,9 @@ export async function searchSpecificSlug(targetSlug: string): Promise<ApiResult>
 
 /**
  * Find duplicate slugs across all content items using SDK
+ * @param languages Optional array of language codes to search. If not provided, uses configured languages or default language
  */
-export async function findDuplicateSlugs(): Promise<DuplicateResult> {
+export async function findDuplicateSlugs(languages?: string[]): Promise<DuplicateResult> {
   if (!isConfigValid()) {
     return {
       duplicates: [],
@@ -82,9 +80,10 @@ export async function findDuplicateSlugs(): Promise<DuplicateResult> {
   }
 
   try {
-    console.log("\n=== FINDING DUPLICATE SLUGS USING SDK ===");
+    const languagesToSearch = languages || getConfiguredLanguages();
+    console.log(`\n=== FINDING DUPLICATE SLUGS USING SDK (${languagesToSearch.join(", ")}) ===`);
     
-    const allItems = await fetchAllPageItemsWithSlugs();
+    const allItems = await fetchAllPageItemsWithSlugs(languagesToSearch);
     const slugMap = buildSlugMap(allItems);
     const duplicates = findTrueDuplicates(slugMap);
 
@@ -107,15 +106,19 @@ export async function findDuplicateSlugs(): Promise<DuplicateResult> {
 /**
  * Fetch all page items with slugs across all languages
  */
-async function fetchAllPageItemsWithSlugs(): Promise<PageItem[]> {
+async function fetchAllPageItemsWithSlugs(languages?: string[]): Promise<PageItem[]> {
   const client = createDeliveryClient({
     environmentId: appConfig.projectId,
     secureApiKey: appConfig.deliveryApiKey || undefined,
   });
 
+  // Use provided languages or get configured languages
+  const languagesToSearch = languages || getConfiguredLanguages();
+  console.log(`🌐 Languages to search: ${languagesToSearch.join(", ")}`);
+
   const allItems: PageItem[] = [];
   
-  for (const lang of LANGUAGE_CODES) {
+  for (const lang of languagesToSearch) {
     console.log(`Fetching page items in language: ${lang}`);
     
     const response = await client

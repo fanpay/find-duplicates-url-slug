@@ -10,9 +10,10 @@ import {
   renderConfiguration,
   renderDuplicateResults,
   renderSearchResults,
+  renderLanguageConfiguration,
 } from "./components/ui";
 // Import modules
-import { initializeConfig } from "./config";
+import { initializeConfig, appConfig } from "./config";
 import { findDuplicateSlugs, searchSpecificSlug } from "./services/search";
 
 // =====================================================================
@@ -27,6 +28,7 @@ let searchBtn: HTMLElement;
 let executeSearchBtn: HTMLElement;
 let findBtn: HTMLElement;
 let searchSection: HTMLElement;
+let languagesBtn: HTMLElement;
 
 function mustGet<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -67,6 +69,7 @@ function setupUI(): void {
   executeSearchBtn = mustGet<HTMLElement>("execute-search-btn");
   findBtn = mustGet<HTMLElement>("find-btn");
   searchSection = mustGet<HTMLElement>("search-section");
+  languagesBtn = mustGet<HTMLElement>("languages-btn");
 }
 
 /**
@@ -99,6 +102,7 @@ function setupEventListeners(): void {
   });
 
   findBtn.addEventListener("click", handleFindDuplicatesClick);
+  languagesBtn.addEventListener("click", handleLanguagesClick);
 }
 
 // =====================================================================
@@ -159,6 +163,68 @@ async function handleFindDuplicatesClick(): Promise<void> {
     console.error("Error finding duplicates:", error);
     resultDiv.innerHTML = `<p style="color:red;">Error finding duplicates: ${error}</p>`;
   }
+}
+
+/**
+ * Handle languages configuration button click
+ */
+async function handleLanguagesClick(): Promise<void> {
+  try {
+    // Hide search section when showing config
+    searchSection.style.display = "none";
+
+    resultDiv.innerHTML = renderLanguageConfiguration();
+    setupLanguageConfigListeners();
+  } catch (error) {
+    console.error("Error showing language configuration:", error);
+    resultDiv.innerHTML = `<p style="color:red;">Error showing language configuration: ${error}</p>`;
+  }
+}
+
+/**
+ * Setup event listeners for language configuration
+ */
+function setupLanguageConfigListeners(): void {
+  const applyBtn = document.getElementById("apply-languages-btn");
+  const resetBtn = document.getElementById("reset-languages-btn");
+  const languagesInput = document.getElementById("languages-input") as HTMLInputElement;
+  const defaultLangInput = document.getElementById("default-lang-input") as HTMLInputElement;
+
+  applyBtn?.addEventListener("click", () => {
+    const languagesValue = languagesInput?.value.trim();
+    const defaultLangValue = defaultLangInput?.value.trim();
+
+    // Update in-memory configuration
+    if (languagesValue) {
+      appConfig.languages = languagesValue.split(",").map(lang => lang.trim()).filter(lang => lang);
+    } else {
+      appConfig.languages = [];
+    }
+
+    if (defaultLangValue) {
+      appConfig.defaultLanguage = defaultLangValue;
+    }
+
+    // Refresh the language configuration display
+    resultDiv.innerHTML = renderLanguageConfiguration();
+    setupLanguageConfigListeners();
+
+    // Show success message
+    const successMsg = document.createElement("div");
+    successMsg.style.cssText = "margin: 10px 0; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;";
+    successMsg.textContent = "✅ Languages updated successfully for this session!";
+    resultDiv.insertBefore(successMsg, resultDiv.firstChild);
+  });
+
+  resetBtn?.addEventListener("click", () => {
+    // Reset to default configuration
+    appConfig.languages = [];
+    appConfig.defaultLanguage = "en";
+
+    // Refresh the display
+    resultDiv.innerHTML = renderLanguageConfiguration();
+    setupLanguageConfigListeners();
+  });
 }
 
 // =====================================================================

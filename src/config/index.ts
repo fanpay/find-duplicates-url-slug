@@ -10,7 +10,9 @@ export const appConfig: AppConfig = {
   projectId: "",
   environmentId: "",
   deliveryApiKey: "",
-  managementApiKey: ""
+  managementApiKey: "",
+  languages: [],
+  defaultLanguage: "en"
 };
 
 /**
@@ -20,6 +22,17 @@ export async function initializeConfig(): Promise<void> {
   // Get environment variables first (fallback values)
   appConfig.projectId = getEnvVar("VITE_KONTENT_PROJECT_ID") || "";
   appConfig.environmentId = getEnvVar("VITE_KONTENT_ENVIRONMENT_ID") || "";
+  
+  // Configure languages from environment variables
+  const envLanguages = getEnvVar("VITE_KONTENT_LANGUAGES");
+  if (envLanguages) {
+    appConfig.languages = envLanguages.split(",").map(lang => lang.trim());
+  }
+  
+  const envDefaultLanguage = getEnvVar("VITE_KONTENT_DEFAULT_LANGUAGE");
+  if (envDefaultLanguage) {
+    appConfig.defaultLanguage = envDefaultLanguage.trim();
+  }
 
   console.log("🔧 Environment variables loaded:", {
     hasProjectId: Boolean(appConfig.projectId),
@@ -49,6 +62,17 @@ export async function initializeConfig(): Promise<void> {
 }
 
 /**
+ * Get the configured languages or fallback to default
+ */
+export function getConfiguredLanguages(): string[] {
+  if (appConfig.languages && appConfig.languages.length > 0) {
+    return appConfig.languages;
+  }
+  // Fallback to default language if no languages configured
+  return [appConfig.defaultLanguage || "en"];
+}
+
+/**
  * Get environment variable from multiple sources
  */
 declare global {
@@ -56,6 +80,8 @@ declare global {
   interface ImportMetaEnv {
     readonly VITE_KONTENT_PROJECT_ID?: string;
     readonly VITE_KONTENT_ENVIRONMENT_ID?: string;
+    readonly VITE_KONTENT_LANGUAGES?: string;
+    readonly VITE_KONTENT_DEFAULT_LANGUAGE?: string;
     // Allow other arbitrary variables without forcing any
     readonly [key: string]: string | undefined;
   }
@@ -76,6 +102,8 @@ function logConfiguration(): void {
   console.log("📋 Final configuration:", {
     projectId: appConfig.projectId || "❌ NOT SET",
     environmentId: appConfig.environmentId || "❌ NOT SET",
+    languages: appConfig.languages?.length ? appConfig.languages : ["Using default: " + appConfig.defaultLanguage],
+    defaultLanguage: appConfig.defaultLanguage,
   });
 }
 

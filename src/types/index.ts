@@ -7,6 +7,8 @@ export interface AppConfig {
   environmentId: string;
   deliveryApiKey: string;
   managementApiKey: string;
+  languages?: string[];
+  defaultLanguage?: string;
 }
 
 export interface ContentItem {
