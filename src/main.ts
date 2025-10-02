@@ -28,7 +28,6 @@ let searchBtn: HTMLElement;
 let executeSearchBtn: HTMLElement;
 let findBtn: HTMLElement;
 let searchSection: HTMLElement;
-let languagesBtn: HTMLElement;
 
 function mustGet<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -69,7 +68,6 @@ function setupUI(): void {
   executeSearchBtn = mustGet<HTMLElement>("execute-search-btn");
   findBtn = mustGet<HTMLElement>("find-btn");
   searchSection = mustGet<HTMLElement>("search-section");
-  languagesBtn = mustGet<HTMLElement>("languages-btn");
 }
 
 /**
@@ -102,7 +100,6 @@ function setupEventListeners(): void {
   });
 
   findBtn.addEventListener("click", handleFindDuplicatesClick);
-  languagesBtn.addEventListener("click", handleLanguagesClick);
 }
 
 // =====================================================================
@@ -120,6 +117,9 @@ async function handleConfigClick(): Promise<void> {
     resultDiv.innerHTML = "Loading configuration...";
     await initializeConfig();
     resultDiv.innerHTML = renderConfiguration();
+    
+    // Setup event listener for the integrated configure languages button
+    setupIntegratedLanguageConfigListener();
   } catch (error) {
     console.error("Error loading configuration:", error);
     resultDiv.innerHTML = `<p style="color:red;">Error loading configuration: ${error}</p>`;
@@ -166,29 +166,38 @@ async function handleFindDuplicatesClick(): Promise<void> {
 }
 
 /**
- * Handle languages configuration button click
+ * Setup event listener for the integrated language configuration button in Show Config
  */
-async function handleLanguagesClick(): Promise<void> {
-  try {
-    // Hide search section when showing config
-    searchSection.style.display = "none";
-
+function setupIntegratedLanguageConfigListener(): void {
+  const configureBtn = document.getElementById("configure-languages-btn");
+  configureBtn?.addEventListener("click", () => {
+    // Show language configuration interface
     resultDiv.innerHTML = renderLanguageConfiguration();
     setupLanguageConfigListeners();
-  } catch (error) {
-    console.error("Error showing language configuration:", error);
-    resultDiv.innerHTML = `<p style="color:red;">Error showing language configuration: ${error}</p>`;
-  }
+  });
 }
 
 /**
- * Setup event listeners for language configuration
+ * Setup event listeners for language configuration interface
  */
 function setupLanguageConfigListeners(): void {
   const applyBtn = document.getElementById("apply-languages-btn");
   const resetBtn = document.getElementById("reset-languages-btn");
   const languagesInput = document.getElementById("languages-input") as HTMLInputElement;
   const defaultLangInput = document.getElementById("default-lang-input") as HTMLInputElement;
+  const backToConfigBtn = document.createElement("button");
+  
+  // Add a back button to return to main config
+  backToConfigBtn.textContent = "← Back to Config";
+  backToConfigBtn.className = "button button-secondary";
+  backToConfigBtn.style.cssText = "margin-bottom: 15px;";
+  backToConfigBtn.addEventListener("click", async () => {
+    await handleConfigClick();
+  });
+  
+  // Insert back button at the beginning
+  const configSection = document.querySelector(".config-section");
+  configSection?.firstChild && configSection.insertBefore(backToConfigBtn, configSection.firstChild);
 
   applyBtn?.addEventListener("click", () => {
     const languagesValue = languagesInput?.value.trim();
@@ -205,15 +214,19 @@ function setupLanguageConfigListeners(): void {
       appConfig.defaultLanguage = defaultLangValue;
     }
 
-    // Refresh the language configuration display
-    resultDiv.innerHTML = renderLanguageConfiguration();
-    setupLanguageConfigListeners();
-
-    // Show success message
+    // Show success message and return to main config after a delay
     const successMsg = document.createElement("div");
     successMsg.style.cssText = "margin: 10px 0; padding: 10px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724;";
-    successMsg.textContent = "✅ Languages updated successfully for this session!";
-    resultDiv.insertBefore(successMsg, resultDiv.firstChild);
+    successMsg.textContent = "✅ Languages updated successfully! Returning to config...";
+    
+    if (configSection) {
+      configSection.insertBefore(successMsg, configSection.firstChild);
+    }
+    
+    // Return to main config after 1.5 seconds
+    setTimeout(async () => {
+      await handleConfigClick();
+    }, 1500);
   });
 
   resetBtn?.addEventListener("click", () => {

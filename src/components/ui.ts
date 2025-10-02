@@ -18,7 +18,6 @@ export function createMainUI(): string {
         <button id="config-btn" class="button button-primary">Show Config</button>
         <button id="search-btn" class="button button-warning">Search Slug</button>
         <button id="find-btn" class="button button-success">Find All Duplicates</button>
-        <button id="languages-btn" class="button button-info">Configure Languages</button>
       </div>
       
       <div id="search-section" class="search-section" style="display: none;">
@@ -128,7 +127,12 @@ export function renderConfiguration(): string {
       </div>
 
       <div style="margin-bottom: 15px;">
-        <strong>Languages to Search:</strong>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <strong>Languages to Search:</strong>
+          <button id="configure-languages-btn" class="button button-info small">
+            ⚙️ Configure
+          </button>
+        </div>
         <div style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 5px;">
           ${getConfiguredLanguages().join(', ') || '<span style="color: orange;">Using default language</span>'}
         </div>
