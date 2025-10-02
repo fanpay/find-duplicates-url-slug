@@ -1,24 +1,23 @@
 /**
- * Search service for finding duplicate slugs and specific items
+ * Search service using the Delivery SDK for finding duplicate slugs
  */
 
+import { createDeliveryClient, type IContentItem, type Elements } from "@kontent-ai/delivery-sdk";
 import { appConfig, isConfigValid } from "../config";
-import type { ApiResult, DuplicateItem, DuplicateResult } from "../types";
-import type { DuplicateGroup, DuplicateSummaryItem, RawKontentItem } from "../utils";
-import {
-  createApiHeaders,
-  filterDuplicates,
-  filterPageItemsWithSlugs,
-  groupItemsBySlug,
-  removeDuplicateItems,
-} from "../utils";
+import type { ApiResult, DuplicateResult } from "../types";
 import { searchAllItemsDeliveryApi, searchWithDeliveryApi, searchWithManagementApi } from "./api";
 
-// Languages to search explicitly
+// Type for page content items
+type PageItem = IContentItem<{
+  url_slug?: Elements.UrlSlugElement;
+  slug?: Elements.UrlSlugElement;
+}>;
+
+// Languages to search explicitly  
 const LANGUAGE_CODES = ["de", "en", "zh"];
 
 /**
- * Search for items with specific slug using multiple API approaches
+ * Search for items with specific slug using multiple approaches
  */
 export async function searchSpecificSlug(targetSlug: string): Promise<ApiResult> {
   if (!isConfigValid()) {
@@ -33,10 +32,10 @@ export async function searchSpecificSlug(targetSlug: string): Promise<ApiResult>
   try {
     console.log(`\n=== SEARCHING FOR SLUG: "${targetSlug}" (ALL LANGUAGES) ===`);
 
-    // Try multiple API endpoints and approaches
+    // Try multiple approaches using the SDK
     const results = {
       deliveryApi: await searchWithDeliveryApi(targetSlug),
-      deliveryApiAllItems: await searchAllItemsDeliveryApi(targetSlug),
+      deliveryApiAllItems: await searchAllItemsDeliveryApi(targetSlug), 
       managementApi: appConfig.managementApiKey ? await searchWithManagementApi(targetSlug) : null,
     };
 
@@ -49,13 +48,13 @@ export async function searchSpecificSlug(targetSlug: string): Promise<ApiResult>
       ...(results.managementApi?.items || []),
     ];
 
-    // Remove duplicates based on codename+language combination to preserve multilingual variants
+    // Remove duplicates based on codename+language
     const uniqueItems = removeDuplicateItems(allItems);
 
     return {
       success: true,
       items: uniqueItems,
-      method: "combined",
+      method: "combined-sdk",
       deliveryApi: results.deliveryApi,
       deliveryApiAllItems: results.deliveryApiAllItems,
       managementApi: results.managementApi,
@@ -72,7 +71,7 @@ export async function searchSpecificSlug(targetSlug: string): Promise<ApiResult>
 }
 
 /**
- * Find duplicate slugs across all content items
+ * Find duplicate slugs across all content items using SDK
  */
 export async function findDuplicateSlugs(): Promise<DuplicateResult> {
   if (!isConfigValid()) {
@@ -83,27 +82,17 @@ export async function findDuplicateSlugs(): Promise<DuplicateResult> {
   }
 
   try {
-    console.log("\n=== FINDING DUPLICATE SLUGS (ALL LANGUAGES) ===");
+    console.log("\n=== FINDING DUPLICATE SLUGS USING SDK ===");
+    
+    const allItems = await fetchAllPageItemsWithSlugs();
+    const slugMap = buildSlugMap(allItems);
+    const duplicates = findTrueDuplicates(slugMap);
 
-    const headers = createApiHeaders(appConfig.deliveryApiKey);
-    const { allItems, slugMap, duplicates } = await performDuplicateComputation(headers);
-    logDuplicateSummary(allItems.length, slugMap.size, duplicates);
-
-    // Adapt DuplicateGroup (with aggregated language data) to DuplicateItem expected by types
-    const duplicateItems: DuplicateItem[] = duplicates.map((d) => ({
-      slug: d.slug,
-      items: d.items.map((i) => ({
-        name: i.name,
-        codename: i.codename,
-        language: i.language, // aggregated representative language string
-        slugField: i.slugField === "url_slug" ? "url_slug" : "slug",
-      })),
-    }));
+    logDuplicateResults(duplicates);
 
     return {
-      duplicates: duplicateItems,
+      duplicates,
       totalItems: allItems.length,
-      totalRequests: 0, // Will be updated by fetchAllPageItemsForDuplicateCheck
       uniqueSlugs: slugMap.size,
     };
   } catch (err: unknown) {
@@ -116,128 +105,139 @@ export async function findDuplicateSlugs(): Promise<DuplicateResult> {
 }
 
 /**
- * Internal: perform the heavy lifting for duplicate computation
+ * Fetch all page items with slugs across all languages
  */
-async function performDuplicateComputation(headers: Record<string, string>) {
-  const allItems = await fetchAllPageItemsForDuplicateCheck(headers);
-  console.log("\n=== DUPLICATE ANALYSIS ===");
-  console.log(`Total page items with slugs: ${allItems.length}`);
-  const slugMap = groupItemsBySlug(allItems);
-  const duplicates = filterDuplicates(slugMap);
-  return { allItems, slugMap, duplicates };
-}
+async function fetchAllPageItemsWithSlugs(): Promise<PageItem[]> {
+  const client = createDeliveryClient({
+    environmentId: appConfig.projectId,
+    secureApiKey: appConfig.deliveryApiKey || undefined,
+  });
 
-/**
- * Internal: log summary & per-duplicate detail
- */
-function logDuplicateSummary(
-  totalItems: number,
-  uniqueSlugs: number,
-  duplicates: DuplicateGroup[],
-) {
-  console.log("\n=== DUPLICATE ANALYSIS RESULTS ===");
-  console.log(
-    `Found ${duplicates.length} TRUE duplicate slugs (different content items sharing same slug)`,
-  );
-  for (const d of duplicates) {
-    const contentItems = d.items.length;
-    const totalVariants = d.items.reduce(
-      (sum: number, item: DuplicateSummaryItem) => sum + (item.languageCount || 1),
-      0,
-    );
-    console.log(
-      `\n- Slug "${d.slug}": ${contentItems} different content items, ${totalVariants} total language variants`,
-    );
-    for (const item of d.items) {
-      const languages = item.languages ? item.languages.join(", ") : item.language;
-      console.log(`  * ${item.name} (${item.codename}) - Languages: [${languages}]`);
-    }
-    if (d.slug === "lorem-ipsum") {
-      console.log(
-        "  🔍 LOREM-IPSUM DEBUG - This shows different content items sharing the same slug:",
-      );
-      for (const item of d.items) {
-        console.log(
-          `    - Content Item: ${item.name} (${item.codename}) in languages: [${item.languages ? item.languages.join(", ") : item.language}]`,
-        );
-      }
-    }
-  }
-}
-
-/**
- * Fetch all page items for duplicate checking with pagination
- */
-async function fetchAllPageItemsForDuplicateCheck(
-  headers: Record<string, string>,
-): Promise<RawKontentItem[]> {
-  const allItems: RawKontentItem[] = [];
+  const allItems: PageItem[] = [];
+  
   for (const lang of LANGUAGE_CODES) {
-    const itemsForLang = await fetchItemsForLanguage(lang, headers);
-    allItems.push(...itemsForLang);
+    console.log(`Fetching page items in language: ${lang}`);
+    
+    const response = await client
+      .items<PageItem>()
+      .type('page')
+      .languageParameter(lang)
+      .elementsParameter(['url_slug', 'slug'])
+      .toAllPromise();
+
+    const itemsWithSlugs = response.data.items.filter(item => 
+      item.elements.url_slug?.value || item.elements.slug?.value
+    );
+
+    allItems.push(...itemsWithSlugs);
+    console.log(`Fetched ${itemsWithSlugs.length} page items with slugs in ${lang}`);
   }
-  console.log(`Total requests made across all languages: ${LANGUAGE_CODES.length}`);
-  console.log(`Total items across all languages: ${allItems.length}`);
+
+  console.log(`Total page items with slugs: ${allItems.length}`);
   return allItems;
 }
 
-async function fetchItemsForLanguage(
-  lang: string,
-  headers: Record<string, string>,
-): Promise<RawKontentItem[]> {
-  let items: RawKontentItem[] = [];
-  let skip = 0;
-  const pageSize = 1000;
-  let more = true;
-  let totalRequests = 0;
-  while (more) {
-    totalRequests++;
-    const url = `https://deliver.kontent.ai/${appConfig.projectId}/items?system.type=page&elements=url_slug,slug,system&limit=${pageSize}&skip=${skip}&language=${lang}`;
-    console.log(`Duplicate search request ${totalRequests} (lang=${lang}): ${url}`);
-    const data = await fetchItemsPage(url, headers);
-    const newItems = filterPageItemsWithSlugs((data.items || []) as RawKontentItem[]);
-    items = items.concat(newItems);
-    logBatchInfo(lang, totalRequests, newItems, items.length);
+/**
+ * Build a map of slugs to their associated items
+ */
+function buildSlugMap(items: PageItem[]): Map<string, Array<{
+  name: string;
+  codename: string;
+  language: string;
+  slugField: string;
+}>> {
+  const slugMap = new Map<string, Array<{
+    name: string;
+    codename: string;
+    language: string;
+    slugField: string;
+  }>>();
 
-    if (data.pagination?.next_page) {
-      skip += pageSize;
-      console.log(`More pages available, next skip (lang=${lang}): ${skip}`);
-    } else {
-      console.log(`No more pages - pagination complete (lang=${lang})`);
-      more = false;
+  for (const item of items) {
+    const slug = item.elements.url_slug?.value || item.elements.slug?.value;
+    if (!slug) continue;
+
+    if (!slugMap.has(slug)) {
+      slugMap.set(slug, []);
     }
-    if (totalRequests > 50) {
-      console.log("Safety limit reached, stopping pagination");
-      break;
-    }
+    
+    slugMap.get(slug)?.push({
+      name: item.system.name || "Unknown",
+      codename: item.system.codename || "unknown",
+      language: item.system.language || "unknown",
+      slugField: item.elements.url_slug?.value ? "url_slug" : "slug",
+    });
   }
-  console.log(`Total requests made for ${lang}: ${totalRequests}`);
-  console.log(`Total items for ${lang}: ${items.length}`);
-  return items;
+
+  return slugMap;
 }
 
-async function fetchItemsPage(url: string, headers: Record<string, string>) {
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    throw new Error(`Error fetching from API: ${res.status} ${res.statusText}`);
-  }
-  const data = await res.json();
-  console.log("Pagination info:", data.pagination);
-  return data;
+/**
+ * Find true duplicates from slug map
+ */
+function findTrueDuplicates(slugMap: Map<string, Array<{
+  name: string;
+  codename: string;
+  language: string;
+  slugField: string;
+}>>) {
+  return Array.from(slugMap.entries())
+    .filter(([, items]) => {
+      const uniqueCodenames = new Set(items.map(item => item.codename));
+      return uniqueCodenames.size > 1;
+    })
+    .map(([slug, items]) => ({
+      slug,
+      items: groupItemsByCodename(items),
+    }));
 }
 
-function logBatchInfo(
-  lang: string,
-  requestNumber: number,
-  newItems: RawKontentItem[],
-  totalSoFar: number,
-) {
-  const languagesInBatch = [
-    ...new Set(newItems.map((item) => item.system?.language).filter(Boolean)),
-  ];
-  console.log(
-    `Request ${requestNumber} (lang=${lang}): Found ${newItems.length} page items with slugs, total: ${totalSoFar}`,
+/**
+ * Group items by codename for better display
+ */
+function groupItemsByCodename(items: Array<{
+  name: string;
+  codename: string;
+  language: string;
+  slugField: string;
+}>) {
+  const grouped = items.reduce((acc, item) => {
+    if (!acc[item.codename]) {
+      acc[item.codename] = [];
+    }
+    acc[item.codename].push(item);
+    return acc;
+  }, {} as Record<string, typeof items>);
+
+  return Object.entries(grouped).map(([codename, languageItems]) => ({
+    name: languageItems[0].name,
+    codename,
+    language: languageItems.map(item => item.language).join(", "),
+    slugField: languageItems[0].slugField as "url_slug" | "slug",
+  }));
+}
+
+/**
+ * Log duplicate results for debugging
+ */
+function logDuplicateResults(duplicates: ReturnType<typeof findTrueDuplicates>): void {
+  console.log(`Found ${duplicates.length} TRUE duplicate slugs`);
+  for (const d of duplicates) {
+    console.log(`- Slug "${d.slug}": ${d.items.length} different content items`);
+    for (const item of d.items) {
+      console.log(`  * ${item.name} (${item.codename}) - Languages: ${item.language}`);
+    }
+  }
+}
+
+/**
+ * Remove duplicate items based on codename+language combination
+ */
+function removeDuplicateItems<T extends { codename: string; language: string }>(items: T[]): T[] {
+  return items.filter(
+    (item, index, self) =>
+      index === self.findIndex((i) => 
+        i.codename === item.codename && i.language === item.language
+      ),
   );
-  console.log(`Languages in this batch: ${languagesInBatch.join(", ")}`);
 }
-

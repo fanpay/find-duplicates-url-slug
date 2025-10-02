@@ -7,7 +7,8 @@ A lightweight custom app for Kontent.ai that detects and manages duplicate URL s
 - **Search Specific Slugs**: Find all content items using a specific URL slug
 - **Detect Real Duplicates**: Identify different content items sharing the same slug (not just language variants)
 - **Multi-language Support**: Handles content across multiple languages (default: `de`, `en`, `zh`)
-- **Automatic Pagination**: Processes large content sets (>1000 items per language)
+- **Official SDK Integration**: Uses `@kontent-ai/delivery-sdk` for reliable API communication
+- **Automatic Pagination**: SDK handles large content sets automatically with `.toAllPromise()`
 - **Real-time Analysis**: Instant duplicate detection with detailed results
 - **Lightweight**: Built with TypeScript + Vite, no heavy frameworks
 
@@ -153,7 +154,7 @@ npm run format:fix   # Auto-fix formatting issues
 ## 🔗 Dependencies
 
 - **[@kontent-ai/custom-app-sdk](https://github.com/kontent-ai/custom-app-sdk-js)**: Kontent.ai integration
-
+- **[@kontent-ai/delivery-sdk](https://github.com/kontent-ai/delivery-sdk-js)**: Official Delivery API SDK
 - **[Vite](https://vitejs.dev/)**: Build tool and development server
 - **[TypeScript](https://www.typescriptlang.org/)**: Type safety
 - **[Biome](https://biomejs.dev/)**: Linting and formatting

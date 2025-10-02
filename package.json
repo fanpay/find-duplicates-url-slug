@@ -17,7 +17,8 @@
     "format:fix": "biome check --write ."
   },
   "dependencies": {
-    "@kontent-ai/custom-app-sdk": "^1.0.0"
+    "@kontent-ai/custom-app-sdk": "^1.0.0",
+    "@kontent-ai/delivery-sdk": "^16.3.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
