@@ -7,7 +7,6 @@ import type { AppConfig } from "../types";
 
 // Global configuration instance
 export const appConfig: AppConfig = {
-  projectId: "",
   environmentId: "",
   deliveryApiKey: "",
   managementApiKey: "",
@@ -19,8 +18,7 @@ export const appConfig: AppConfig = {
  * Initialize configuration from environment variables and Kontent.ai context
  */
 export async function initializeConfig(): Promise<void> {
-  // Get environment variables first (fallback values)
-  appConfig.projectId = getEnvVar("VITE_KONTENT_PROJECT_ID") || "";
+  // Get environment variables as fallback (mainly for standalone testing)
   appConfig.environmentId = getEnvVar("VITE_KONTENT_ENVIRONMENT_ID") || "";
   
   // Configure languages from environment variables
@@ -35,7 +33,6 @@ export async function initializeConfig(): Promise<void> {
   }
 
   console.log("🔧 Environment variables loaded:", {
-    hasProjectId: Boolean(appConfig.projectId),
     hasEnvironmentId: Boolean(appConfig.environmentId)
   });
 
@@ -46,10 +43,9 @@ export async function initializeConfig(): Promise<void> {
     console.log("📋 Custom App Context response:", ctx);
 
     if (!ctx.isError && ctx.context?.environmentId) {
-      // Use Environment ID from Kontent.ai context (more reliable)
-      appConfig.projectId = ctx.context.environmentId;
+      // Use Environment ID from Kontent.ai context (preferred and most reliable)
       appConfig.environmentId = ctx.context.environmentId;
-      console.log("✅ Using Environment ID from Kontent.ai context:", appConfig.projectId);
+      console.log("✅ Using Environment ID from Kontent.ai context:", appConfig.environmentId);
     } else {
       console.log("⚠️ Custom App context not available or incomplete");
     }
@@ -78,7 +74,6 @@ export function getConfiguredLanguages(): string[] {
 declare global {
   // Vite injects env vars prefixed with VITE_
   interface ImportMetaEnv {
-    readonly VITE_KONTENT_PROJECT_ID?: string;
     readonly VITE_KONTENT_ENVIRONMENT_ID?: string;
     readonly VITE_KONTENT_LANGUAGES?: string;
     readonly VITE_KONTENT_DEFAULT_LANGUAGE?: string;
@@ -100,7 +95,6 @@ function getEnvVar(key: string): string {
  */
 function logConfiguration(): void {
   console.log("📋 Final configuration:", {
-    projectId: appConfig.projectId || "❌ NOT SET",
     environmentId: appConfig.environmentId || "❌ NOT SET",
     languages: appConfig.languages?.length ? appConfig.languages : ["Using default: " + appConfig.defaultLanguage],
     defaultLanguage: appConfig.defaultLanguage,
@@ -111,18 +105,16 @@ function logConfiguration(): void {
  * Check if required configuration is present
  */
 export function isConfigValid(): boolean {
-  return Boolean(appConfig.projectId);
+  return Boolean(appConfig.environmentId);
 }
 
 /**
  * Get configuration status for display
  */
 export function getConfigStatus(): {
-  projectId: string;
   environmentId: string;
 } {
   return {
-    projectId: appConfig.projectId,
     environmentId: appConfig.environmentId,
   };
 }

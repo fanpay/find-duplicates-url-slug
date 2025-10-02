@@ -23,7 +23,7 @@ cp .env.example .env
 
 Configure your Kontent.ai credentials:
 ```env
-VITE_KONTENT_PROJECT_ID=your-environment-id
+# Environment ID (automatically detected when used as Custom App)
 VITE_KONTENT_ENVIRONMENT_ID=your-environment-id
 
 # Optional: Configure languages to search (comma-separated)
@@ -32,6 +32,8 @@ VITE_KONTENT_LANGUAGES=de,en,zh
 # Optional: Set default language (used when no languages configured)
 VITE_KONTENT_DEFAULT_LANGUAGE=en
 ```
+
+> **Note:** When integrated as a Custom App in Kontent.ai, the Environment ID is automatically detected from the SDK context.
 
 ### 2. Development
 
@@ -74,8 +76,8 @@ npm run dev:netlify
 1. **Connect Repository**: Link your GitHub repo to Netlify
 2. **Environment Variables**: Set in Netlify dashboard:
    ```
-   VITE_KONTENT_PROJECT_ID = your-environment-id
    VITE_KONTENT_ENVIRONMENT_ID = your-environment-id
+   VITE_KONTENT_LANGUAGES = de,en,zh (optional)
    ```
 3. **Auto-deploy**: Push to main branch triggers deployment
 4. **Use in Kontent.ai**: Add your Netlify URL as Custom App

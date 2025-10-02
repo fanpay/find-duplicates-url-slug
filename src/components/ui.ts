@@ -118,16 +118,12 @@ export function renderConfiguration(): string {
       <h2 style="color: #495057; margin-top: 0;">Current Configuration</h2>
       
       <div style="margin-bottom: 15px;">
-        <strong>Project ID:</strong>
-        <div style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 5px;">
-          ${config.projectId || '<span style="color: red;">NOT SET</span>'}
-        </div>
-      </div>
-
-      <div style="margin-bottom: 15px;">
         <strong>Environment ID:</strong>
         <div style="background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 5px;">
           ${config.environmentId || '<span style="color: red;">✗ NOT SET</span>'}
+        </div>
+        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+          ${config.environmentId ? 'Automatically detected from Kontent.ai context or .env file' : 'Configure VITE_KONTENT_ENVIRONMENT_ID in .env file or embed as Custom App'}
         </div>
       </div>
 

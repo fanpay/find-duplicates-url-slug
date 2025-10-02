@@ -3,10 +3,9 @@
  */
 
 export interface AppConfig {
-  projectId: string;
   environmentId: string;
-  deliveryApiKey: string;
-  managementApiKey: string;
+  deliveryApiKey?: string;
+  managementApiKey?: string;
   languages?: string[];
   defaultLanguage?: string;
 }

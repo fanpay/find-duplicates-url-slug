@@ -20,7 +20,7 @@ const LANGUAGE_CODES = ["de", "en", "zh"];
  */
 function createClient() {
   return createDeliveryClient({
-    environmentId: appConfig.projectId,
+    environmentId: appConfig.environmentId,
     secureApiKey: appConfig.deliveryApiKey || undefined,
   });
 }

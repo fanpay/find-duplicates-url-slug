@@ -108,7 +108,7 @@ export async function findDuplicateSlugs(languages?: string[]): Promise<Duplicat
  */
 async function fetchAllPageItemsWithSlugs(languages?: string[]): Promise<PageItem[]> {
   const client = createDeliveryClient({
-    environmentId: appConfig.projectId,
+    environmentId: appConfig.environmentId,
     secureApiKey: appConfig.deliveryApiKey || undefined,
   });
 
