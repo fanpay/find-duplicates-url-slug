@@ -198,7 +198,7 @@ async function fetchItemsForLanguage(
     const newItems = filterPageItemsWithSlugs((data.items || []) as RawKontentItem[]);
     items = items.concat(newItems);
     logBatchInfo(lang, totalRequests, newItems, items.length);
-    logMariPages(lang, totalRequests, newItems);
+
     if (data.pagination?.next_page) {
       skip += pageSize;
       console.log(`More pages available, next skip (lang=${lang}): ${skip}`);
@@ -241,17 +241,3 @@ function logBatchInfo(
   console.log(`Languages in this batch: ${languagesInBatch.join(", ")}`);
 }
 
-function logMariPages(lang: string, requestNumber: number, newItems: RawKontentItem[]) {
-  const mariPages = newItems.filter((item) => item.system?.codename === "tutorial_mari_page");
-  if (mariPages.length > 0) {
-    console.log(
-      `🔍 Found tutorial_mari_page in batch ${requestNumber} (lang=${lang}):`,
-      mariPages
-        .map(
-          (item) =>
-            `${item.system.codename}(${item.system.language}) slug: ${item.elements?.url_slug?.value || item.elements?.slug?.value || "none"}`,
-        )
-        .join(", "),
-    );
-  }
-}

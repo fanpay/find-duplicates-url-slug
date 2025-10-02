@@ -153,8 +153,7 @@ npm run format:fix   # Auto-fix formatting issues
 ## 🔗 Dependencies
 
 - **[@kontent-ai/custom-app-sdk](https://github.com/kontent-ai/custom-app-sdk-js)**: Kontent.ai integration
-- **[@kontent-ai/management-sdk](https://github.com/kontent-ai/management-sdk-js)**: Content management
-- **[@kontent-ai/stylekit](https://github.com/kontent-ai/stylekit)**: UI components
+
 - **[Vite](https://vitejs.dev/)**: Build tool and development server
 - **[TypeScript](https://www.typescriptlang.org/)**: Type safety
 - **[Biome](https://biomejs.dev/)**: Linting and formatting
